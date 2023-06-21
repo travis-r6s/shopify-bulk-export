@@ -1,4 +1,5 @@
 import assert from 'node:assert'
+import consola, { LogLevels } from 'consola'
 import got, { type Got } from 'got'
 import pWaitFor from 'p-wait-for'
 import { createInterface } from 'node:readline'
@@ -20,6 +21,8 @@ export interface Input {
   query: string
   /** The interval between query status checks, in milliseconds. @default 20000 (20 seconds) */
   interval?: number
+  /** Choose whether to log progress to console */
+  logs?: boolean
 }
 
 const DEFAULT_API_VERSION = '2022-10'
@@ -47,7 +50,9 @@ async function startBulkQuery (query: string, client: Got): Promise<string> {
 }
 
 async function waitForQuery (bulkOperationId: string, client: Got, interval: number = 20000): Promise<string> {
-  return await pWaitFor(async () => {
+  let downloadUrl = ''
+
+  await pWaitFor(async () => {
     const { data } = await client.post<GraphQLResponse<BulkStatusQueryType>>('graphql.json', {
       resolveBodyOnly: true,
       responseType: 'json',
@@ -61,11 +66,14 @@ async function waitForQuery (bulkOperationId: string, client: Got, interval: num
     if (data.bulk.status === BulkOperationStatus.Completed) {
       if (Number(data.bulk.objectCount) === 0) throw new Error('No objects exist in this export.')
 
-      return data.bulk.url
+      downloadUrl = data.bulk.url
+      return true
     }
 
     return false
   }, { interval })
+
+  return downloadUrl
 }
 
 async function downloadData <T = unknown> (downloadUrl: string): Promise<T[]> {
@@ -90,11 +98,19 @@ async function downloadData <T = unknown> (downloadUrl: string): Promise<T[]> {
  * const nodes = await run<Result>() // Result[]
  * */
 async function run <T = unknown> (input: Input): Promise<T[]> {
+  assert(typeof input === 'object', 'Missing input')
   assert(input.store.name, 'Missing store name input - `input.store.name`')
   assert(input.store.accessToken, 'Missing store accessToken input - `input.store.accessToken`')
   assert(input.query, 'Missing input query - `input.query`')
 
   const { store } = input
+
+  const logger = consola.withDefaults({
+    tag: 'shopify-export-data',
+    level: input.logs ? LogLevels.debug : LogLevels.silent
+  })
+
+  logger.debug(`Creating client with name ${store.name}`)
 
   const client = got.extend({
     prefixUrl: `https://${store.name}.myshopify.com/admin/api/${store.apiVersion ?? DEFAULT_API_VERSION}`,
@@ -105,11 +121,19 @@ async function run <T = unknown> (input: Input): Promise<T[]> {
     responseType: 'json'
   })
 
+  logger.debug('Starting bulk query mutation')
+
   const bulkOperationId = await startBulkQuery(input.query, client)
+
+  logger.debug('Waiting for bulk query to finish')
 
   const bulkDownloadUrl = await waitForQuery(bulkOperationId, client, input.interval)
 
+  logger.debug('Downloading and parsing bulk query data')
+
   const nodes = await downloadData<T>(bulkDownloadUrl)
+
+  console.log(`Finished, with ${nodes.length} nodes`)
 
   return nodes
 }
