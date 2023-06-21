@@ -5,20 +5,20 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "develop": "tsup --watch",
+    "dev": "tsup --watch",
     "build-fast": "tsup",
-    "build": "pnpm run build-fast -- --dts-resolve",
+    "build": "tsup --dts",
     "test": "vitest run",
     "prepublishOnly": "pnpm run build"
   },
   "publishConfig": {
     "access": "public"
   },
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
   "exports": {
-    "require": "./dist/index.js",
-    "import": "./dist/index.mjs"
+    "require": "./dist/index.cjs",
+    "import": "./dist/index.js"
   },
   "files": [
     "dist"
