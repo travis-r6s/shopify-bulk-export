@@ -79,13 +79,13 @@ async function waitForQuery (bulkOperationId: string, client: Got, interval: num
 async function downloadData <T = unknown> (downloadUrl: string): Promise<T[]> {
   const rl = createInterface(got.stream(downloadUrl))
 
-  const data: T[] = []
+  const nodes: T[] = []
   for await (const line of rl) {
     const data = JSON.parse(line)
-    data.push(data)
+    nodes.push(data)
   }
 
-  return data
+  return nodes
 }
 
 /**
