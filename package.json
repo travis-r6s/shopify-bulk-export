@@ -5,7 +5,8 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "build-fast": "tsup src/index.ts --format cjs,esm",
+    "develop": "tsup --watch",
+    "build-fast": "tsup",
     "build": "pnpm run build-fast -- --dts-resolve",
     "test": "vitest run",
     "prepublishOnly": "pnpm run build"
