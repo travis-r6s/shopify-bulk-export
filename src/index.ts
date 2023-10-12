@@ -4,6 +4,7 @@ import got, { type Got } from 'got'
 import pWaitFor from 'p-wait-for'
 import { createInterface } from 'node:readline'
 import { type GraphQLResponse, StartBulkQuery, type StartBulkQueryType, BulkOperationStatus, BulkStatusQuery, type BulkStatusQueryType } from './bulk-queries'
+import { parse, print, visit } from 'graphql'
 
 export interface StoreInput {
   /** The name of the shopify store, without the shopify domain @example https://<mystore>.myshopify.com -> mystore */
@@ -19,13 +20,39 @@ export interface Input {
   store: StoreInput
   /** The query to run as a bulk query, as a string */
   query: string
+  /** Optional runtime variables to inject into the query */
+  variables?: Record<string, unknown>
   /** The interval between query status checks, in milliseconds. @default 20000 (20 seconds) */
   interval?: number
   /** Choose whether to log progress to console */
   logs?: boolean
 }
 
-const DEFAULT_API_VERSION = '2022-10'
+const DEFAULT_API_VERSION = '2023-10'
+
+export function replaceQueryVariables (query: string, variables?: Record<string, unknown>): string {
+  if (!variables) return query
+
+  const ast = parse(query)
+
+  const editedAST = visit(ast, {
+    Variable (node, key) {
+      if (key !== 'value') return
+
+      if (Reflect.has(variables, node.name.value)) {
+        return {
+          kind: 'StringValue',
+          value: Reflect.get(variables, node.name.value)
+        }
+      }
+    },
+    VariableDefinition () {
+      return null
+    }
+  })
+
+  return print(editedAST)
+}
 
 async function startBulkQuery (query: string, client: Got): Promise<string> {
   const { data } = await client.post<GraphQLResponse<StartBulkQueryType>>('graphql.json', {
@@ -76,10 +103,14 @@ async function waitForQuery (bulkOperationId: string, client: Got, interval: num
   return downloadUrl
 }
 
-async function downloadData <T = unknown> (downloadUrl: string): Promise<T[]> {
+type BaseResult<T> = T & {
+  __parentId?: string
+}
+
+async function downloadData <T> (downloadUrl: string): Promise<Array<BaseResult<T>>> {
   const rl = createInterface(got.stream(downloadUrl))
 
-  const nodes: T[] = []
+  const nodes: Array<BaseResult<T>> = []
   for await (const line of rl) {
     const data = JSON.parse(line)
     nodes.push(data)
@@ -97,11 +128,12 @@ async function downloadData <T = unknown> (downloadUrl: string): Promise<T[]> {
  *
  * const nodes = await run<Result>() // Result[]
  * */
-async function run <T = unknown> (input: Input): Promise<T[]> {
+async function run <T = unknown> (input: Input): Promise<Array<BaseResult<T>>> {
   assert(typeof input === 'object', 'Missing input')
   assert(input.store.name, 'Missing store name input - `input.store.name`')
   assert(input.store.accessToken, 'Missing store accessToken input - `input.store.accessToken`')
   assert(input.query, 'Missing input query - `input.query`')
+  if (input.variables) assert(typeof input.variables === 'object', '`variables` should be an object, matching type Record<string, unknown>')
 
   const { store } = input
 
@@ -123,7 +155,9 @@ async function run <T = unknown> (input: Input): Promise<T[]> {
 
   logger.debug('Starting bulk query mutation')
 
-  const bulkOperationId = await startBulkQuery(input.query, client)
+  const formattedQuery = replaceQueryVariables(input.query, input.variables)
+
+  const bulkOperationId = await startBulkQuery(formattedQuery, client)
 
   logger.debug('Waiting for bulk query to finish')
 
