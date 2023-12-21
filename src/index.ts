@@ -24,8 +24,8 @@ export interface Input {
   variables?: Record<string, unknown>
   /** The interval between query status checks, in milliseconds. @default 20000 (20 seconds) */
   interval?: number
-  /** Choose whether to log progress to console */
-  logs?: boolean | typeof console
+  /** Choose whether to log progress to console. You can also provide your own logger, if needed. */
+  logs?: boolean | Pick<Console, 'debug' | 'log' | 'info' | 'error'>
 }
 
 const DEFAULT_API_VERSION = '2023-10'
