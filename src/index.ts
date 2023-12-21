@@ -25,7 +25,7 @@ export interface Input {
   /** The interval between query status checks, in milliseconds. @default 20000 (20 seconds) */
   interval?: number
   /** Choose whether to log progress to console */
-  logs?: boolean
+  logs?: boolean | typeof console
 }
 
 const DEFAULT_API_VERSION = '2023-10'
@@ -140,7 +140,7 @@ async function run<T = unknown>(input: Input): Promise<Array<BaseResult<T>>> {
 
   const { store } = input
 
-  const logger = consola.withDefaults({
+  const logger = typeof input.logs === 'object' ? input.logs : consola.withDefaults({
     tag: 'shopify-export-data',
     level: input.logs ? LogLevels.debug : LogLevels.silent,
   })
@@ -170,7 +170,7 @@ async function run<T = unknown>(input: Input): Promise<Array<BaseResult<T>>> {
 
   const nodes = await downloadData<T>(bulkDownloadUrl)
 
-  logger.info(`Finished, with ${nodes.length} nodes`)
+  logger.debug(`Finished, with ${nodes.length} nodes`)
 
   return nodes
 }
