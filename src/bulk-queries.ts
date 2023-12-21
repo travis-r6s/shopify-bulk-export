@@ -38,7 +38,7 @@ export enum BulkOperationStatus {
    */
   Failed = 'FAILED',
   /** The bulk operation is runnning. */
-  Running = 'RUNNING'
+  Running = 'RUNNING',
 }
 
 /** Error codes for failed bulk operations. */
@@ -61,7 +61,7 @@ export enum BulkOperationErrorCode {
    * In some cases, timeouts can be avoided by modifying your `query` to select fewer fields.
    *
    */
-  Timeout = 'TIMEOUT'
+  Timeout = 'TIMEOUT',
 }
 
 export interface StartBulkQueryType {
