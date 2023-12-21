@@ -1,7 +1,7 @@
 {
   "name": "shopify-data-export",
-  "version": "0.0.0",
-  "description": "My awesome typescript library",
+  "version": "1.0.0",
+  "description": "A package to help you bulk export data from Shopify's API.",
   "license": "MIT",
   "type": "module",
   "scripts": {
