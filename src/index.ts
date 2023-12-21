@@ -3,8 +3,8 @@ import consola, { LogLevels } from 'consola'
 import got, { type Got } from 'got'
 import pWaitFor from 'p-wait-for'
 import { createInterface } from 'node:readline'
-import { type GraphQLResponse, StartBulkQuery, type StartBulkQueryType, BulkOperationStatus, BulkStatusQuery, type BulkStatusQueryType } from './bulk-queries'
 import { parse, print, visit } from 'graphql'
+import { type GraphQLResponse, StartBulkQuery, type StartBulkQueryType, BulkOperationStatus, BulkStatusQuery, type BulkStatusQueryType } from './bulk-queries'
 
 export interface StoreInput {
   /** The name of the shopify store, without the shopify domain @example https://<mystore>.myshopify.com -> mystore */
