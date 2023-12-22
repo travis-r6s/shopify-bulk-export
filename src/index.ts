@@ -36,7 +36,7 @@ export interface PluginInput {
    *
    * You can pass a folder name if you want to change the cache directory name.
    */
-  cache: boolean | string
+  cache?: boolean | string
 }
 
 const DEFAULT_API_VERSION = '2023-10'
