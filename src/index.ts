@@ -7,8 +7,6 @@ import { parse, print, visit } from 'graphql'
 import { BulkOperationStatus, BulkStatusQuery, type BulkStatusQueryType, type GraphQLResponse, StartBulkQuery, type StartBulkQueryType } from './bulk-queries'
 import { createCache } from './cache'
 
-// TODO: Add caching option
-
 export interface StoreInput {
   /** The name of the shopify store, without the shopify domain @example https://<mystore>.myshopify.com -> mystore */
   name: string
@@ -33,8 +31,8 @@ export interface PluginInput {
   logs?: boolean | BaseLogger
   /**
    * Configure the cache functionality - enabled by default,
-   * this will save JSONL results to a cache directy in your project,
-   * and load them on subsequent usage if the input matches.
+   * this will save JSONL results to a cache directory in your project,
+   * and load them on subsequent requests if the current input matches a previous result.
    *
    * You can pass a folder name if you want to change the cache directory name.
    */
