@@ -4,4 +4,7 @@ export default antfu({
   ignores: [
     './dist',
   ],
+  rules: {
+    'curly': ['error', 'multi-line']
+  }
 })
