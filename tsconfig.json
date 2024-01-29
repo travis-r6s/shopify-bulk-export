@@ -3,7 +3,7 @@
     "target": "ESNext",
     "moduleDetection": "auto",
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "Bundler",
     "resolveJsonModule": true,
     "types": ["vitest/globals"],
     "allowJs": true,
