@@ -4,7 +4,7 @@ import consola, { LogLevels } from 'consola'
 import got, { type Got } from 'got'
 import pWaitFor from 'p-wait-for'
 import { parse, print, visit } from 'graphql'
-import type { ResultOf, TypedDocumentNode } from '@graphql-typed-document-node/core'
+import type { TypedDocumentNode } from '@graphql-typed-document-node/core'
 import { BulkOperationStatus, BulkStatusQuery, type BulkStatusQueryType, type GraphQLResponse, StartBulkQuery, type StartBulkQueryType } from './bulk-queries'
 import { createCache } from './cache'
 
@@ -151,7 +151,7 @@ async function downloadData<T>(downloadUrl: string): Promise<Array<BaseResult<T>
  *
  * TODO: Update this to properly support returning types from the TypedDocumentNode
  */
-async function run<T = unknown>(input: PluginInput): Promise<Array<BaseResult<T | ResultOf<typeof input['query']>>>> {
+async function run<T = unknown>(input: PluginInput): Promise<Array<BaseResult<T>>> {
   assert(typeof input === 'object', 'Missing input')
   assert(input.store.name, 'Missing store name input - `input.store.name`')
   assert(input.store.accessToken, 'Missing store accessToken input - `input.store.accessToken`')
