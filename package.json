@@ -1,5 +1,5 @@
 {
-  "name": "shopify-data-export",
+  "name": "shopify-bulk-export",
   "type": "module",
   "version": "1.0.0",
   "description": "A package to help you bulk export data from Shopify's API.",
@@ -25,21 +25,22 @@
     "access": "public"
   },
   "dependencies": {
+    "@graphql-typed-document-node/core": "^3.2.0",
     "consola": "^3.2.3",
     "fs-extra": "^11.2.0",
-    "got": "^14.1.0",
+    "got": "^14.2.1",
     "graphql": "^16.8.1",
     "ohash": "^1.1.3",
     "p-wait-for": "^5.0.2",
     "read-package-up": "^11.0.0"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^2.6.3",
+    "@antfu/eslint-config": "^2.11.1",
     "@types/fs-extra": "^11.0.4",
-    "@types/node": "^20.11.10",
-    "eslint": "^8.56.0",
-    "tsup": "8.0.1",
-    "typescript": "5.3.3",
-    "vitest": "1.2.2"
+    "@types/node": "^20.11.30",
+    "eslint": "^8.57.0",
+    "tsup": "8.0.2",
+    "typescript": "5.4.3",
+    "vitest": "1.4.0"
   }
 }
