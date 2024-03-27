@@ -4,6 +4,7 @@ import consola, { LogLevels } from 'consola'
 import got, { type Got } from 'got'
 import pWaitFor from 'p-wait-for'
 import { parse, print, visit } from 'graphql'
+import type { ResultOf, TypedDocumentNode } from '@graphql-typed-document-node/core'
 import { BulkOperationStatus, BulkStatusQuery, type BulkStatusQueryType, type GraphQLResponse, StartBulkQuery, type StartBulkQueryType } from './bulk-queries'
 import { createCache } from './cache'
 
@@ -21,8 +22,8 @@ export type BaseLogger = Pick<Console, 'debug' | 'log' | 'info' | 'error'>
 export interface PluginInput {
   /** Configuration for the store */
   store: StoreInput
-  /** The query to run as a bulk query, as a string */
-  query: string
+  /** The query to run as a bulk query, as a string, or a TypedDocumentNode to get a fully-typed result */
+  query: string | TypedDocumentNode
   /** Optional runtime variables to inject into the query */
   variables?: Record<string, unknown>
   /** The interval between query status checks, in milliseconds. @default 20000 (20 seconds) */
@@ -41,10 +42,11 @@ export interface PluginInput {
 
 const DEFAULT_API_VERSION = '2023-10'
 
-export function replaceQueryVariables(query: string, variables?: Record<string, unknown>): string {
-  if (!variables) { return query }
-
-  const ast = parse(query)
+export function replaceQueryVariables(query: string | TypedDocumentNode, variables?: Record<string, unknown>): string {
+  const ast = typeof query === 'string' ? parse(query) : query
+  if (!variables) {
+    return print(ast)
+  }
 
   const editedAST = visit(ast, {
     Variable(node, key) {
@@ -146,8 +148,10 @@ async function downloadData<T>(downloadUrl: string): Promise<Array<BaseResult<T>
  * type Result = { id: `gid://shopify/Product/${number}`, title: string } | { id: `gid://shopify/ProductVariant/${number}`, displayName: string }
  *
  * const nodes = await run<Result>() // Result[]
+ *
+ * TODO: Update this to properly support returning types from the TypedDocumentNode
  */
-async function run<T = unknown>(input: PluginInput): Promise<Array<BaseResult<T>>> {
+async function run<T = unknown>(input: PluginInput): Promise<Array<BaseResult<T | ResultOf<typeof input['query']>>>> {
   assert(typeof input === 'object', 'Missing input')
   assert(input.store.name, 'Missing store name input - `input.store.name`')
   assert(input.store.accessToken, 'Missing store accessToken input - `input.store.accessToken`')
@@ -171,7 +175,6 @@ async function run<T = unknown>(input: PluginInput): Promise<Array<BaseResult<T>
     logger.debug('We have a cached result, returning')
     return cachedResults
   }
-
 
   logger.debug(`Creating client with name ${store.name}`)
 
