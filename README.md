@@ -53,16 +53,16 @@ If your query has variables (for example a search query), you can pass these in 
 ```ts
 import bulkExport from 'shopify-bulk-export'
 
-const query = `<some-runtime-query>`
+const searchQuery = `<some-runtime-value>`
 
 const data = await bulkExport({
-  query: 'query Products ($query: String!) { products (query: $query) { edges { node { id title } } } }',
+  query: 'query Products ($searchQuery: String!) { products (query: $searchQuery) { edges { node { id title } } } }',
   store: {
     accessToken: '',
     name: ''
   },
   variables: {
-    query
+    searchQuery
   }
 })
 ```
