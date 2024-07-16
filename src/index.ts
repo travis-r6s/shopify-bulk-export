@@ -13,7 +13,7 @@ export interface StoreInput {
   name: string
   /** The Shopify store access token */
   accessToken: string
-  /** The API version to use @default `2022-10` */
+  /** The API version to use @default `2024-07` */
   apiVersion?: string
 }
 
@@ -40,7 +40,7 @@ export interface PluginInput {
   cache?: boolean | string
 }
 
-const DEFAULT_API_VERSION = '2023-10'
+const DEFAULT_API_VERSION = '2024-07'
 
 export function replaceQueryVariables(query: string | TypedDocumentNode, variables?: Record<string, unknown>): string {
   const ast = typeof query === 'string' ? parse(query) : query
