@@ -133,8 +133,11 @@ async function downloadData<T>(downloadUrl: string): Promise<Array<BaseResult<T>
 
   const nodes: Array<BaseResult<T>> = []
   for await (const line of rl) {
-    const data = JSON.parse(line)
-    nodes.push(data)
+    // Shopify seems to add a newline at the bottom of the file now, so check for that
+    if (line) {
+      const data = JSON.parse(line)
+      nodes.push(data)
+    }
   }
 
   return nodes
