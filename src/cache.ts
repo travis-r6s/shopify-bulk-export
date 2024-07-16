@@ -3,7 +3,7 @@ import process from 'node:process'
 import fs from 'fs-extra'
 import { readPackageUp } from 'read-package-up'
 import { hash } from 'ohash'
-import type { BaseLogger, BaseResult, PluginInput } from '.'
+import type { BaseResult, FunctionContext, PluginInput } from '.'
 
 const defaultCacheDirName = '.export-cache'
 
@@ -79,13 +79,13 @@ interface Cache {
  * A simple helper that creates a cache instance, and returns helper methods.
  * If the cache is disabled, then the helper methods can still be called, but they won't do anything.
  */
-export async function createCache(options: PluginInput['cache'], logger: BaseLogger): Promise<Cache> {
+export async function createCache(options: PluginInput['cache'], ctx: FunctionContext): Promise<Cache> {
   const enabled = typeof options === 'boolean' ? options : true
   const customCacheDir = typeof options === 'string' ? options : undefined
 
   // Cache is disabled, so return mocks
   if (!enabled) {
-    logger.debug('Cache is disabled - mocking functionality.')
+    ctx.logger.debug('Cache is disabled - mocking functionality.')
     return {
       createHash,
       put: async () => {},
@@ -95,11 +95,11 @@ export async function createCache(options: PluginInput['cache'], logger: BaseLog
 
   // Ensure we have a cache directory
   const cacheDirPath = await loadCacheDir(customCacheDir)
-  logger.debug(`Loaded cache directory at: ${cacheDirPath}`)
+  ctx.logger.debug(`Loaded cache directory at: ${cacheDirPath}`)
 
   // Load all file paths in cache directory, and save to map
   const cacheKeyMap = await loadCacheMap(cacheDirPath)
-  logger.debug(`Loaded cache map with ${cacheKeyMap.size} entries`)
+  ctx.logger.debug(`Loaded cache map with ${cacheKeyMap.size} entries`)
 
   return {
     createHash,
@@ -109,7 +109,7 @@ export async function createCache(options: PluginInput['cache'], logger: BaseLog
       const cachedFilePath = cacheKeyMap.get(inputHash)
       if (!cachedFilePath) { return }
 
-      logger.debug(`Found cache item at ${cachedFilePath} for key ${inputHash}, loading item`)
+      ctx.logger.debug(`Found cache item at ${cachedFilePath} for key ${inputHash}, loading item`)
 
       const data = await fs.readFile(cachedFilePath, 'utf-8')
       return JSON.parse(data)
@@ -123,7 +123,7 @@ export async function createCache(options: PluginInput['cache'], logger: BaseLog
         name: inputHash,
       })
 
-      logger.debug(`Saving file to cache, with key ${inputHash} and path ${cacheDirPath}`)
+      ctx.logger.debug(`Saving file to cache, with key ${inputHash} and path ${cacheDirPath}`)
 
       await fs.writeFile(cachedFilePath, JSON.stringify(data))
     },

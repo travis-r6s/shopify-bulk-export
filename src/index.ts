@@ -40,13 +40,21 @@ export interface PluginInput {
   cache?: boolean | string
 }
 
+export interface FunctionContext {
+  logger: BaseLogger
+}
+
 const DEFAULT_API_VERSION = '2024-07'
 
-export function replaceQueryVariables(query: string | TypedDocumentNode, variables?: Record<string, unknown>): string {
+export function replaceQueryVariables(query: string | TypedDocumentNode, variables: Record<string, unknown> | undefined, ctx: FunctionContext): string {
   const ast = typeof query === 'string' ? parse(query) : query
   if (!variables) {
-    return print(ast)
+    const formattedQuery = print(ast)
+    ctx.logger.debug('No variables input to be replaced, so returning query:', formattedQuery)
+    return formattedQuery
   }
+
+  ctx.logger.debug(`Replacing variables in query:`, variables)
 
   const editedAST = visit(ast, {
     Variable(node, key) {
@@ -66,10 +74,14 @@ export function replaceQueryVariables(query: string | TypedDocumentNode, variabl
     },
   })
 
-  return print(editedAST)
+  const formattedQuery = print(editedAST)
+
+  ctx.logger.debug('Replaced all variables in query:', formattedQuery)
+
+  return formattedQuery
 }
 
-async function startBulkQuery(query: string, client: Got): Promise<string> {
+async function startBulkQuery(query: string, client: Got, _ctx: FunctionContext): Promise<string> {
   const { data } = await client.post<GraphQLResponse<StartBulkQueryType>>('graphql.json', {
     json: { query: StartBulkQuery, variables: { query } },
     resolveBodyOnly: true,
@@ -91,10 +103,12 @@ async function startBulkQuery(query: string, client: Got): Promise<string> {
   return data.bulkOperationRunQuery.bulkOperation.id
 }
 
-async function waitForQuery(bulkOperationId: string, client: Got, interval: number = 20000): Promise<string> {
+async function waitForQuery(bulkOperationId: string, client: Got, interval: number = 20000, ctx: FunctionContext): Promise<string> {
   let downloadUrl = ''
 
   await pWaitFor(async () => {
+    ctx.logger.debug('Checking bulk query status')
+
     const { data } = await client.post<GraphQLResponse<BulkStatusQueryType>>('graphql.json', {
       resolveBodyOnly: true,
       responseType: 'json',
@@ -118,8 +132,12 @@ async function waitForQuery(bulkOperationId: string, client: Got, interval: numb
       return true
     }
 
+    ctx.logger.debug('Bulk query hasn\'t finished yet, waiting')
+
     return false
   }, { interval })
+
+  ctx.logger.debug(`Bulk query has finished - download URL: ${downloadUrl}`)
 
   return downloadUrl
 }
@@ -128,7 +146,8 @@ export type BaseResult<T> = T & {
   __parentId?: string
 }
 
-async function downloadData<T>(downloadUrl: string): Promise<Array<BaseResult<T>>> {
+async function downloadData<T>(downloadUrl: string, ctx: FunctionContext): Promise<Array<BaseResult<T>>> {
+  ctx.logger.debug(`Starting to stream download and parse JSONL file`)
   const rl = createInterface(got.stream(downloadUrl))
 
   const nodes: Array<BaseResult<T>> = []
@@ -139,6 +158,8 @@ async function downloadData<T>(downloadUrl: string): Promise<Array<BaseResult<T>
       nodes.push(data)
     }
   }
+
+  ctx.logger.debug('Finished download and parsing JSONL file')
 
   return nodes
 }
@@ -170,8 +191,10 @@ async function run<T = unknown>(input: PluginInput): Promise<Array<BaseResult<T>
       level: input.logs ? LogLevels.debug : LogLevels.silent,
     })
 
+  const ctx: FunctionContext = { logger }
+
   logger.debug('Initiating cache')
-  const cache = await createCache(input.cache, logger)
+  const cache = await createCache(input.cache, ctx)
 
   const cachedResults = await cache.get<T>(input)
   if (cachedResults) {
@@ -192,17 +215,21 @@ async function run<T = unknown>(input: PluginInput): Promise<Array<BaseResult<T>
 
   logger.debug('Starting bulk query mutation')
 
-  const formattedQuery = replaceQueryVariables(input.query, input.variables)
+  const formattedQuery = replaceQueryVariables(input.query, input.variables, ctx)
 
-  const bulkOperationId = await startBulkQuery(formattedQuery, client)
+  const bulkOperationId = await startBulkQuery(formattedQuery, client, ctx)
+
+  logger.debug(`Created bulk query with ID ${bulkOperationId}`)
 
   logger.debug('Waiting for bulk query to finish')
 
-  const bulkDownloadUrl = await waitForQuery(bulkOperationId, client, input.interval)
+  const bulkDownloadUrl = await waitForQuery(bulkOperationId, client, input.interval, ctx)
 
   logger.debug('Downloading and parsing bulk query data')
 
-  const nodes = await downloadData<T>(bulkDownloadUrl)
+  const nodes = await downloadData<T>(bulkDownloadUrl, ctx)
+  logger.debug('Finished downloading, adding to cache')
+
   await cache.put(input, nodes)
 
   logger.debug(`Finished, with ${nodes.length} nodes`)
