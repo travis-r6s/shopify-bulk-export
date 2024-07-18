@@ -178,48 +178,50 @@ export function replaceQueryVariables(query: string | TypedDocumentNode, variabl
 }
 
 async function startBulkQuery(query: string, client: Got, ctx: FunctionContext): Promise<string> {
-  const { data, errors } = await client.post<GraphQLResponse<StartBulkQueryType>>('graphql.json', {
-    json: { query: StartBulkQuery, variables: { query } },
-    resolveBodyOnly: true,
+  const { body, headers, statusCode, statusMessage } = await client.post<GraphQLResponse<StartBulkQueryType>>('graphql.json', {
     responseType: 'json',
+    json: {
+      query: StartBulkQuery,
+      variables: { query },
+    },
   })
 
-  if (errors?.length) {
+  if (body.errors?.length) {
     ctx.logger.error('Received errors during bulk status query:')
-    for (const error of errors) {
+    for (const error of body.errors) {
       ctx.logger.error(error.message, error)
     }
 
-    throw new Error(errors[0].message)
+    throw new Error(body.errors[0].message)
   }
 
-  if (!data.bulkOperationRunQuery) {
-    ctx.logger.error('Missing `data.bulkOperationRunQuery` key in response from bulk operation start mutation.', data)
+  if (!body.data?.bulkOperationRunQuery) {
+    ctx.logger.error('Missing `data.bulkOperationRunQuery` key in response from bulk operation start mutation.', body, { statusCode, statusMessage }, headers)
     throw new Error('Missing `data.bulkOperationRunQuery` key in response from bulk operation start mutation.')
   }
 
-  if (data.bulkOperationRunQuery?.userErrors.length) {
+  if (body.data.bulkOperationRunQuery?.userErrors.length) {
     ctx.logger.error('Received errors during bulk operation create mutation:')
-    for (const error of data.bulkOperationRunQuery?.userErrors) {
+    for (const error of body.data.bulkOperationRunQuery?.userErrors) {
       ctx.logger.error(error.message, error)
     }
 
-    throw new Error(data.bulkOperationRunQuery.userErrors[0].message)
+    throw new Error(body.data.bulkOperationRunQuery.userErrors[0].message)
   }
 
-  if (data.bulkOperationRunQuery?.bulkOperation?.status === BulkOperationStatus.Failed) {
-    ctx.logger.error(`Bulk operation create mutation returned response: ${data.bulkOperationRunQuery.bulkOperation.status}`, data.bulkOperationRunQuery.bulkOperation)
+  if (body.data.bulkOperationRunQuery?.bulkOperation?.status === BulkOperationStatus.Failed) {
+    ctx.logger.error(`Bulk operation create mutation returned response: ${body.data.bulkOperationRunQuery.bulkOperation.status}`, body.data.bulkOperationRunQuery.bulkOperation)
     throw new Error('Failed to create bulk operation.')
   }
 
-  if (!data.bulkOperationRunQuery?.bulkOperation?.id) {
-    ctx.logger.error(`Bulk operation create mutation is missing an ID from the response.`, data.bulkOperationRunQuery.bulkOperation)
+  if (!body.data.bulkOperationRunQuery?.bulkOperation?.id) {
+    ctx.logger.error(`Bulk operation create mutation is missing an ID from the response.`, body.data.bulkOperationRunQuery.bulkOperation)
     throw new Error('Missing bulk operation ID from the returned response.')
   }
 
-  ctx.logger.debug(`Successfully created bulk query with ID: ${data.bulkOperationRunQuery.bulkOperation.id}`, data.bulkOperationRunQuery.bulkOperation)
+  ctx.logger.debug(`Successfully created bulk query with ID: ${body.data.bulkOperationRunQuery.bulkOperation.id}`, body.data.bulkOperationRunQuery.bulkOperation)
 
-  return data.bulkOperationRunQuery.bulkOperation.id
+  return body.data.bulkOperationRunQuery.bulkOperation.id
 }
 
 async function waitForQuery(bulkOperationId: string, client: Got, interval: number = 20000, ctx: FunctionContext): Promise<string | undefined> {
@@ -246,7 +248,7 @@ async function waitForQuery(bulkOperationId: string, client: Got, interval: numb
     }
 
     if (!body.data?.bulk) {
-      ctx.logger.error('Missing `data.bulk` key in response from bulk operation status query.', body.data, { statusCode, statusMessage }, headers)
+      ctx.logger.error('Missing `data.bulk` key in response from bulk operation status query.', body, { statusCode, statusMessage }, headers)
       throw new Error('Missing `data.bulk` key in response from bulk operation status query.')
     }
 
