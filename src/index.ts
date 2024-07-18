@@ -179,6 +179,7 @@ export function replaceQueryVariables(query: string | TypedDocumentNode, variabl
 
 async function startBulkQuery(query: string, client: Got, ctx: FunctionContext): Promise<string> {
   const { body, headers, statusCode, statusMessage } = await client.post<GraphQLResponse<StartBulkQueryType>>('graphql.json', {
+    resolveBodyOnly: false,
     responseType: 'json',
     json: {
       query: StartBulkQuery,
@@ -231,6 +232,7 @@ async function waitForQuery(bulkOperationId: string, client: Got, interval: numb
     ctx.logger.debug(`Checking bulk query status of operation ${bulkOperationId}`)
 
     const { body, headers, statusCode, statusMessage } = await client.post<GraphQLResponse<BulkStatusQueryType>>('graphql.json', {
+      resolveBodyOnly: false,
       responseType: 'json',
       json: {
         query: BulkStatusQuery,
