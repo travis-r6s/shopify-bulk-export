@@ -1,7 +1,7 @@
 {
   "name": "shopify-bulk-export",
   "type": "module",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "A package to help you bulk export data from Shopify's API.",
   "license": "MIT",
   "exports": {
