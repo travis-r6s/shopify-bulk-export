@@ -253,7 +253,7 @@ async function waitForQuery(bulkOperationId: string, client: Got, interval: numb
     }
 
     if (body.data.bulk?.__typename !== 'BulkOperation') {
-      ctx.logger.error(`__typename returned from the bulk operation status query was ${body.data.bulk.__typename}, NOT the expected 'BulkOperation'.`, data.bulk)
+      ctx.logger.error(`__typename returned from the bulk operation status query was ${body.data.bulk.__typename}, NOT the expected 'BulkOperation'.`, body.data.bulk)
       throw new Error('Wrong typename returned from the bulk operation status query - this is likely a library error, so open an issue on GitHub.')
     }
 
