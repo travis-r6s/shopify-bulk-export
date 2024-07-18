@@ -3,7 +3,9 @@ import process from 'node:process'
 import fs from 'fs-extra'
 import { readPackageUp } from 'read-package-up'
 import { hash } from 'ohash'
-import type { BaseResult, FunctionContext, PluginInput } from '.'
+import type { BaseInput } from './types/input'
+import type { FunctionContext } from './types/context'
+import type { BaseResult } from './types/results'
 
 const defaultCacheDirName = '.export-cache'
 
@@ -32,7 +34,7 @@ async function loadCacheDir(customName?: string) {
  * This uses the input query, input variables, and the input store name + API version
  * to create the hash key.
  */
-function createHash(input: PluginInput) {
+function createHash(input: BaseInput) {
   return hash({
     query: input.query,
     variables: input.variables,
@@ -68,18 +70,18 @@ async function loadCacheMap(cacheDirPath: string): Promise<Map<string, string>> 
 
 interface Cache {
   /** Create a hash for an operation */
-  createHash: (input: PluginInput) => string
+  createHash: (input: BaseInput) => string
   /** Save a result to cache */
-  put: (input: PluginInput, data: unknown[]) => Promise<void>
+  put: (input: BaseInput, data: unknown[]) => Promise<void>
   /** Load a result from cache */
-  get: <T>(input: PluginInput) => Promise<Array<BaseResult<T>> | undefined>
+  get: <T>(input: BaseInput) => Promise<Array<BaseResult<T>> | undefined>
 }
 
 /**
  * A simple helper that creates a cache instance, and returns helper methods.
  * If the cache is disabled, then the helper methods can still be called, but they won't do anything.
  */
-export async function createCache(options: PluginInput['cache'], ctx: FunctionContext): Promise<Cache> {
+export async function createCache(options: BaseInput['cache'], ctx: FunctionContext): Promise<Cache> {
   const enabled = typeof options === 'boolean' ? options : true
   const customCacheDir = typeof options === 'string' ? options : undefined
 
@@ -107,7 +109,9 @@ export async function createCache(options: PluginInput['cache'], ctx: FunctionCo
       const inputHash = createHash(input)
 
       const cachedFilePath = cacheKeyMap.get(inputHash)
-      if (!cachedFilePath) { return }
+      if (!cachedFilePath) {
+        return
+      }
 
       ctx.logger.debug(`Found cache item at ${cachedFilePath} for key ${inputHash}, loading item`)
 

@@ -5,6 +5,6 @@ export default antfu({
     './dist',
   ],
   rules: {
-    'curly': ['error', 'multi-line']
-  }
+    curly: ['error', 'multi-line'],
+  },
 })

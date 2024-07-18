@@ -1,6 +1,6 @@
 # shopify-data-export
 
-A package to help you bulk export data from Shopify's async [Bulk Operation API](https://shopify.dev/docs/api/usage/bulk-operations/queries). 
+A package to help you bulk export data from Shopify's async [Bulk Operation API](https://shopify.dev/docs/api/usage/bulk-operations/queries).
 
 > [!WARNING]
 > Using this package usually results in a long-running task (using `await` to pause until the export has completed), so is not suitable for usage in servers or API's - it is best suited for custom Node.js scripts you may create and run locally, or in background jobs.
