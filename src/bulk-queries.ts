@@ -5,7 +5,7 @@ interface Error {
 }
 
 export interface GraphQLResponse<Query> {
-  data: Query
+  data?: Query
   errors?: Error[]
 }
 

@@ -228,8 +228,7 @@ async function waitForQuery(bulkOperationId: string, client: Got, interval: numb
   await pWaitFor(async () => {
     ctx.logger.debug(`Checking bulk query status of operation ${bulkOperationId}`)
 
-    const { data, errors } = await client.post<GraphQLResponse<BulkStatusQueryType>>('graphql.json', {
-      resolveBodyOnly: true,
+    const { body, headers, statusCode, statusMessage } = await client.post<GraphQLResponse<BulkStatusQueryType>>('graphql.json', {
       responseType: 'json',
       json: {
         query: BulkStatusQuery,
@@ -237,45 +236,45 @@ async function waitForQuery(bulkOperationId: string, client: Got, interval: numb
       },
     })
 
-    if (errors?.length) {
+    if (body.errors?.length) {
       ctx.logger.error('Received errors during bulk status query:')
-      for (const error of errors) {
+      for (const error of body.errors) {
         ctx.logger.error(error.message, error)
       }
 
-      throw new Error(errors[0].message)
+      throw new Error(body.errors[0].message)
     }
 
-    if (!data.bulk) {
-      ctx.logger.error('Missing `data.bulk` key in response from bulk operation status query.', data)
+    if (!body.data?.bulk) {
+      ctx.logger.error('Missing `data.bulk` key in response from bulk operation status query.', body.data, { statusCode, statusMessage }, headers)
       throw new Error('Missing `data.bulk` key in response from bulk operation status query.')
     }
 
-    if (data.bulk?.__typename !== 'BulkOperation') {
-      ctx.logger.error(`__typename returned from the bulk operation status query was ${data.bulk.__typename}, NOT the expected 'BulkOperation'.`, data.bulk)
+    if (body.data.bulk?.__typename !== 'BulkOperation') {
+      ctx.logger.error(`__typename returned from the bulk operation status query was ${body.data.bulk.__typename}, NOT the expected 'BulkOperation'.`, data.bulk)
       throw new Error('Wrong typename returned from the bulk operation status query - this is likely a library error, so open an issue on GitHub.')
     }
 
-    if (data.bulk.errorCode) {
-      ctx.logger.error(`Bulk operation failed, with an error code of ${data.bulk.errorCode}`, data.bulk)
-      throw new Error(`Bulk operation failed, with an error code of ${data.bulk.errorCode}`)
+    if (body.data.bulk.errorCode) {
+      ctx.logger.error(`Bulk operation failed, with an error code of ${body.data.bulk.errorCode}`, body.data.bulk)
+      throw new Error(`Bulk operation failed, with an error code of ${body.data.bulk.errorCode}`)
     }
 
-    if (data.bulk.status === BulkOperationStatus.Completed) {
-      if (Number(data.bulk.objectCount) === 0) {
-        ctx.logger.debug(`The bulk operation completed, but no objects exist in this export (count of ${data.bulk.objectCount}).`, data.bulk)
+    if (body.data.bulk.status === BulkOperationStatus.Completed) {
+      if (Number(body.data.bulk.objectCount) === 0) {
+        ctx.logger.debug(`The bulk operation completed, but no objects exist in this export (count of ${body.data.bulk.objectCount}).`, body.data.bulk)
         ctx.logger.info('No objects exist in this export - check your input query if this was not expected.')
 
         return true
       }
 
-      ctx.logger.debug(`Found status of ${BulkOperationStatus.Completed}:`, data.bulk)
+      ctx.logger.debug(`Found status of ${BulkOperationStatus.Completed}:`, body.data.bulk)
 
-      downloadUrl = data.bulk.url
+      downloadUrl = body.data.bulk.url
       return true
     }
 
-    ctx.logger.debug(`Bulk query hasn't finished yet, waiting ${interval}ms.`, `Last status: ${data.bulk.status}, with object count of ${data.bulk.objectCount}`)
+    ctx.logger.debug(`Bulk query hasn't finished yet, waiting ${interval}ms.`, `Last status: ${body.data.bulk.status}, with object count of ${body.data.bulk.objectCount}`)
 
     return false
   }, { interval })
