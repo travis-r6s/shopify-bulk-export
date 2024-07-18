@@ -275,7 +275,7 @@ async function waitForQuery(bulkOperationId: string, client: Got, interval: numb
       return true
     }
 
-    ctx.logger.debug(`Bulk query hasn't finished yet, waiting ${interval}ms.`, `Last status: ${data.bulk.status}`)
+    ctx.logger.debug(`Bulk query hasn't finished yet, waiting ${interval}ms.`, `Last status: ${data.bulk.status}, with object count of ${data.bulk.objectCount}`)
 
     return false
   }, { interval })
