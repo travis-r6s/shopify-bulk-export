@@ -4,6 +4,10 @@
   "version": "0.3.1",
   "description": "A package to help you bulk export data from Shopify's API.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/travis-r6s/shopify-bulk-export.git"
+  },
   "exports": {
     "import": "./dist/index.js",
     "require": "./dist/index.cjs"
